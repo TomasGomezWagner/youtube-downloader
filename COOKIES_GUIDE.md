@@ -46,32 +46,31 @@ Cambia `chrome` por tu navegador: `firefox`, `edge`, `safari`, `opera`, etc.
 
 Si necesitas usar cookies en producción:
 
-1. **Exporta las cookies** usando el Método 1
+1. **Exporta las cookies** usando el Método 1 (arriba)
 
-2. **Codifica el archivo en base64**:
+2. **Codifica el archivo usando el script incluido**:
+   ```bash
+   python encode_cookies.py cookies.txt
+   ```
+   Esto mostrará el texto codificado en base64.
+
+   **Alternativa manual**:
    ```bash
    # En Windows (PowerShell):
-   [Convert]::ToBase64String([IO.File]::ReadAllBytes("cookies.txt")) | Out-File cookies_base64.txt
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("cookies.txt"))
 
    # En Mac/Linux:
-   base64 cookies.txt > cookies_base64.txt
+   base64 cookies.txt
    ```
 
 3. **Agrega como variable de entorno en Render**:
-   - En tu servicio de Render, ve a "Environment"
-   - Agrega una nueva variable: `COOKIES_BASE64`
-   - Pega el contenido del archivo `cookies_base64.txt`
-
-4. **Actualiza app.py** para decodificar:
-   ```python
-   import base64
-
-   # Al inicio de app.py, después de COOKIES_FILE:
-   if os.environ.get('COOKIES_BASE64'):
-       cookies_content = base64.b64decode(os.environ['COOKIES_BASE64'])
-       with open(COOKIES_FILE, 'wb') as f:
-           f.write(cookies_content)
-   ```
+   - Ve a tu servicio en Render.com
+   - Click en "Environment" en el menú izquierdo
+   - Click en "Add Environment Variable"
+   - **Key**: `COOKIES_BASE64`
+   - **Value**: Pega el texto base64 completo
+   - Click "Save Changes"
+   - Espera a que el servicio se redespliegue automáticamente (~2 minutos)
 
 ## Notas Importantes
 

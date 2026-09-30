@@ -3,6 +3,7 @@ import yt_dlp
 import os
 import tempfile
 import time
+import base64
 from pathlib import Path
 
 app = Flask(__name__)
@@ -11,11 +12,79 @@ app = Flask(__name__)
 DOWNLOAD_FOLDER = tempfile.gettempdir()
 
 # Ruta al archivo de cookies (opcional)
-COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+COOKIES_FILE = os.path.join(DOWNLOAD_FOLDER, 'cookies.txt')
+
+# Si hay cookies en variable de entorno (para Render), decodificarlas
+if os.environ.get('COOKIES_BASE64'):
+    try:
+        cookies_content = base64.b64decode(os.environ['COOKIES_BASE64'])
+        with open(COOKIES_FILE, 'wb') as f:
+            f.write(cookies_content)
+    except Exception as e:
+        print(f"Error decodificando cookies: {e}")
+
+# También buscar cookies.txt en el directorio local
+LOCAL_COOKIES = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+if os.path.exists(LOCAL_COOKIES) and not os.path.exists(COOKIES_FILE):
+    import shutil
+    shutil.copy(LOCAL_COOKIES, COOKIES_FILE)
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+def get_ydl_configs(output_path):
+    """Retorna múltiples configuraciones para intentar en orden"""
+
+    base_config = {
+        'outtmpl': output_path,
+        'merge_output_format': 'mp4',
+        'quiet': True,
+        'no_warnings': True,
+    }
+
+    # Configuración 1: iOS client (más confiable actualmente)
+    config1 = {
+        **base_config,
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios', 'android'],
+                'player_skip': ['webpage'],
+            }
+        },
+    }
+
+    # Configuración 2: Android client con embed
+    config2 = {
+        **base_config,
+        'format': 'best[ext=mp4]/best',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'skip': ['hls', 'dash'],
+            }
+        },
+    }
+
+    # Configuración 3: Web client básico
+    config3 = {
+        **base_config,
+        'format': 'best',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web'],
+            }
+        },
+    }
+
+    # Agregar cookies si existen
+    configs = [config1, config2, config3]
+    if os.path.exists(COOKIES_FILE):
+        for config in configs:
+            config['cookiefile'] = COOKIES_FILE
+
+    return configs
 
 @app.route('/download', methods=['POST'])
 def download():
@@ -30,52 +99,39 @@ def download():
         timestamp = int(time.time())
         output_path = os.path.join(DOWNLOAD_FOLDER, f'video_{timestamp}.mp4')
 
-        # Configuración de yt-dlp con bypass de detección de bots
-        ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'outtmpl': output_path,
-            'merge_output_format': 'mp4',
-            'quiet': True,
-            'no_warnings': True,
-            # Configuraciones anti-bot
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'web'],
-                    'player_skip': ['webpage', 'configs'],
-                }
-            },
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-                'Sec-Fetch-Mode': 'navigate',
-            },
-        }
+        # Intentar con múltiples configuraciones
+        configs = get_ydl_configs(output_path)
+        last_error = None
 
-        # Usar cookies si el archivo existe (ayuda con videos que requieren autenticación)
-        if os.path.exists(COOKIES_FILE):
-            ydl_opts['cookiefile'] = COOKIES_FILE
+        for i, ydl_opts in enumerate(configs):
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get('title', 'video')
 
-        # Descargar video
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'video')
+                # Si llegamos aquí, la descarga fue exitosa
+                if os.path.exists(output_path):
+                    return send_file(
+                        output_path,
+                        as_attachment=True,
+                        download_name=f'{title}.mp4',
+                        mimetype='video/mp4'
+                    )
+            except Exception as e:
+                last_error = str(e)
+                # Si no es el último intento, continuar con la siguiente configuración
+                if i < len(configs) - 1:
+                    continue
+                # Si es el último intento, lanzar el error
+                raise Exception(last_error)
 
-        # Verificar que el archivo existe
-        if not os.path.exists(output_path):
-            return jsonify({'error': 'Error al descargar el video'}), 500
-
-        # Enviar archivo y limpiarlo después
-        return send_file(
-            output_path,
-            as_attachment=True,
-            download_name=f'{title}.mp4',
-            mimetype='video/mp4'
-        )
+        return jsonify({'error': 'No se pudo descargar el video'}), 500
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_msg = str(e)
+        if 'bot' in error_msg.lower():
+            error_msg = 'YouTube está bloqueando la descarga. Por favor, exporta tus cookies de YouTube (ver COOKIES_GUIDE.md)'
+        return jsonify({'error': error_msg}), 500
 
 @app.route('/cleanup', methods=['POST'])
 def cleanup():
