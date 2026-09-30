@@ -43,6 +43,41 @@ else:
 def index():
     return render_template('index.html')
 
+@app.route('/list-formats')
+def list_formats():
+    """Lista formatos disponibles para un video (para debugging)"""
+    url = request.args.get('url', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+
+    try:
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+        }
+        if os.path.exists(COOKIES_FILE):
+            ydl_opts['cookiefile'] = COOKIES_FILE
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = []
+            for f in info.get('formats', []):
+                formats.append({
+                    'format_id': f.get('format_id'),
+                    'ext': f.get('ext'),
+                    'resolution': f.get('resolution', 'audio only'),
+                    'filesize': f.get('filesize', 'unknown'),
+                    'vcodec': f.get('vcodec', 'none'),
+                    'acodec': f.get('acodec', 'none'),
+                })
+
+            return jsonify({
+                'title': info.get('title'),
+                'duration': info.get('duration'),
+                'formats_count': len(formats),
+                'formats': formats[:20],  # Primeros 20
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/debug')
 def debug():
     """Endpoint de debug para verificar configuración"""
@@ -103,21 +138,24 @@ def get_ydl_configs(output_path):
         'no_warnings': True,
     }
 
-    # Configuración 1: iOS - formato pre-merged (más rápido)
+    # ORDEN INVERTIDO: Probar formatos más simples primero
+
+    # Configuración 1: Formato 18 directo (360p, SIEMPRE disponible)
     config1 = {
         **base_config,
-        'format': 'best[ext=mp4]/best',
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['ios'],
-            }
-        },
+        'format': '18',
     }
 
-    # Configuración 2: Android - formato optimizado
+    # Configuración 2: Mejor calidad hasta 720p sin merge
     config2 = {
         **base_config,
-        'format': '18/best[height<=720]/best',  # Formato 18 es 360p mp4, siempre disponible
+        'format': 'best[height<=720][ext=mp4]',
+    }
+
+    # Configuración 3: Android client - cualquier cosa
+    config3 = {
+        **base_config,
+        'format': 'best',
         'extractor_args': {
             'youtube': {
                 'player_client': ['android'],
@@ -125,11 +163,10 @@ def get_ydl_configs(output_path):
         },
     }
 
-    # Configuración 3: Mejor video+audio con merge rápido
-    config3 = {
+    # Configuración 4: iOS client - mejor calidad
+    config4 = {
         **base_config,
-        'format': 'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'merge_output_format': 'mp4',
+        'format': 'best[ext=mp4]',
         'extractor_args': {
             'youtube': {
                 'player_client': ['ios'],
@@ -137,21 +174,16 @@ def get_ydl_configs(output_path):
         },
     }
 
-    # Configuración 4: Web client simple
-    config4 = {
-        **base_config,
-        'format': 'best',
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['web'],
-            }
-        },
-    }
-
-    # Configuración 5: Fallback - cualquier cosa
+    # Configuración 5: Último recurso - merge video+audio
     config5 = {
         **base_config,
-        'format': '18',  # 360p MP4 - casi siempre disponible
+        'format': 'bestvideo[height<=1080]+bestaudio/best',
+        'merge_output_format': 'mp4',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios'],
+            }
+        },
     }
 
     # Agregar cookies si existen
