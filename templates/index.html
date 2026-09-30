@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Downloader</h1>
+        <p class="subtitle">Descarga tus videos de YouTube</p>
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="videoUrl"
+                placeholder="Pega aquí la URL del video de YouTube"
+                autocomplete="off"
+            >
+            <button id="downloadBtn" onclick="downloadVideo()">
+                <span id="btnText">Descargar</span>
+                <span id="loader" class="loader hidden"></span>
+            </button>
+        </div>
+
+        <div id="message" class="message hidden"></div>
+
+        <div class="info">
+            <h3>Instrucciones:</h3>
+            <ol>
+                <li>Copia la URL del video de YouTube</li>
+                <li>Pégala en el campo de arriba</li>
+                <li>Haz clic en "Descargar"</li>
+                <li>Espera a que se descargue (puede tardar según el tamaño)</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
