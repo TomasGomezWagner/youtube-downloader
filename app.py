@@ -90,6 +90,23 @@ def list_formats():
             'cookies_loaded': os.path.exists(COOKIES_FILE)
         }), 500
 
+@app.route('/version')
+def version():
+    """Verifica versiones de Python y yt-dlp"""
+    import sys
+    import subprocess
+
+    try:
+        ytdlp_version = subprocess.check_output(['yt-dlp', '--version'], text=True).strip()
+    except:
+        ytdlp_version = 'unknown'
+
+    return jsonify({
+        'python_version': sys.version,
+        'yt_dlp_version': ytdlp_version,
+        'yt_dlp_module': yt_dlp.version.__version__ if hasattr(yt_dlp, 'version') else 'unknown',
+    })
+
 @app.route('/debug')
 def debug():
     """Endpoint de debug para verificar configuración"""

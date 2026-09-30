@@ -1,0 +1,9 @@
+# Versión NIGHTLY de yt-dlp (última de desarrollo)
+# Usar solo si la versión estable falla
+
+Flask==3.0.0
+git+https://github.com/yt-dlp/yt-dlp.git
+gunicorn==21.2.0
+brotli
+mutagen
+ffmpeg-python

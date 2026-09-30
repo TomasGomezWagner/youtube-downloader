@@ -8,13 +8,14 @@ import yt_dlp
 import os
 import tempfile
 
+
 def test_download():
     """Prueba rápida de descarga"""
 
     # Video de prueba (Rick Astley - Never Gonna Give You Up)
-    test_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    test_url = "https://www.youtube.com/live/b_pmWoQZPK8"
 
-    output_path = os.path.join(tempfile.gettempdir(), 'test_video.mp4')
+    output_path = os.path.join(tempfile.gettempdir(), "test_video.mp4")
 
     print("🧪 Probando descarga de YouTube...")
     print(f"📹 URL: {test_url}")
@@ -22,43 +23,43 @@ def test_download():
 
     configs = [
         {
-            'name': 'iOS Client (bv*+ba/b)',
-            'opts': {
-                'format': 'bv*+ba/b',
-                'outtmpl': output_path,
-                'quiet': False,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['ios'],
+            "name": "iOS Client (bv*+ba/b)",
+            "opts": {
+                "format": "bv*+ba/b",
+                "outtmpl": output_path,
+                "quiet": False,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["ios"],
                     }
                 },
-            }
+            },
         },
         {
-            'name': 'Android Client (b)',
-            'opts': {
-                'format': 'b',
-                'outtmpl': output_path,
-                'quiet': False,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['android'],
+            "name": "Android Client (b)",
+            "opts": {
+                "format": "b",
+                "outtmpl": output_path,
+                "quiet": False,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android"],
                     }
                 },
-            }
+            },
         },
         {
-            'name': 'Web Client (best)',
-            'opts': {
-                'format': 'best',
-                'outtmpl': output_path,
-                'quiet': False,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['web'],
+            "name": "Web Client (best)",
+            "opts": {
+                "format": "best",
+                "outtmpl": output_path,
+                "quiet": False,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["web"],
                     }
                 },
-            }
+            },
         },
     ]
 
@@ -68,9 +69,9 @@ def test_download():
         print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
         try:
-            with yt_dlp.YoutubeDL(config['opts']) as ydl:
+            with yt_dlp.YoutubeDL(config["opts"]) as ydl:
                 info = ydl.extract_info(test_url, download=True)
-                title = info.get('title', 'Desconocido')
+                title = info.get("title", "Desconocido")
 
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
@@ -80,8 +81,8 @@ def test_download():
                 print(f"📁 Archivo: {output_path}")
 
                 # Limpiar
-                os.remove(output_path)
-                print("\n🧹 Archivo de prueba eliminado")
+                # os.remove(output_path)
+                # print("\n🧹 Archivo de prueba eliminado")
                 print("\n🎉 ¡Todo funciona correctamente!")
                 return True
 
@@ -98,10 +99,11 @@ def test_download():
     print("3. Consulta SOLUCION_RAPIDA.md para usar cookies")
     return False
 
+
 if __name__ == "__main__":
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("   YOUTUBE DOWNLOADER - TEST DE DESCARGA")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
 
     try:
         test_download()
@@ -110,4 +112,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Error inesperado: {e}")
 
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
