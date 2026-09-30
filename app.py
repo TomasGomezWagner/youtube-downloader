@@ -50,8 +50,14 @@ def list_formats():
 
     try:
         ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
+            'quiet': False,
+            'no_warnings': False,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['ios', 'android', 'web'],
+                    'player_skip': ['webpage'],
+                }
+            },
         }
         if os.path.exists(COOKIES_FILE):
             ydl_opts['cookiefile'] = COOKIES_FILE
@@ -64,19 +70,25 @@ def list_formats():
                     'format_id': f.get('format_id'),
                     'ext': f.get('ext'),
                     'resolution': f.get('resolution', 'audio only'),
-                    'filesize': f.get('filesize', 'unknown'),
-                    'vcodec': f.get('vcodec', 'none'),
-                    'acodec': f.get('acodec', 'none'),
+                    'height': f.get('height'),
+                    'vcodec': f.get('vcodec', 'none')[:20],
+                    'acodec': f.get('acodec', 'none')[:20],
                 })
 
             return jsonify({
                 'title': info.get('title'),
                 'duration': info.get('duration'),
                 'formats_count': len(formats),
-                'formats': formats[:20],  # Primeros 20
+                'formats': formats,
+                'has_format_18': any(f['format_id'] == '18' for f in formats),
             })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'cookies_loaded': os.path.exists(COOKIES_FILE)
+        }), 500
 
 @app.route('/debug')
 def debug():
@@ -138,50 +150,62 @@ def get_ydl_configs(output_path):
         'no_warnings': True,
     }
 
-    # ORDEN INVERTIDO: Probar formatos más simples primero
+    # TODAS las configuraciones DEBEN tener player_client para bypass
 
-    # Configuración 1: Formato 18 directo (360p, SIEMPRE disponible)
+    # Configuración 1: iOS - Mejor disponible (sin especificar formato exacto)
     config1 = {
         **base_config,
-        'format': '18',
+        'format': 'best',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios'],
+                'player_skip': ['webpage'],
+            }
+        },
     }
 
-    # Configuración 2: Mejor calidad hasta 720p sin merge
+    # Configuración 2: Android - Lo que sea
     config2 = {
-        **base_config,
-        'format': 'best[height<=720][ext=mp4]',
-    }
-
-    # Configuración 3: Android client - cualquier cosa
-    config3 = {
         **base_config,
         'format': 'best',
         'extractor_args': {
             'youtube': {
                 'player_client': ['android'],
+                'player_skip': ['webpage'],
             }
         },
     }
 
-    # Configuración 4: iOS client - mejor calidad
-    config4 = {
+    # Configuración 3: Android TV (otro bypass)
+    config3 = {
         **base_config,
-        'format': 'best[ext=mp4]',
+        'format': 'best',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios'],
+                'player_client': ['android_embedded'],
             }
         },
     }
 
-    # Configuración 5: Último recurso - merge video+audio
-    config5 = {
+    # Configuración 4: iOS con merge si es necesario
+    config4 = {
         **base_config,
-        'format': 'bestvideo[height<=1080]+bestaudio/best',
+        'format': 'bestvideo+bestaudio/best',
         'merge_output_format': 'mp4',
         'extractor_args': {
             'youtube': {
                 'player_client': ['ios'],
+            }
+        },
+    }
+
+    # Configuración 5: Web client
+    config5 = {
+        **base_config,
+        'format': 'best',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web'],
             }
         },
     }
