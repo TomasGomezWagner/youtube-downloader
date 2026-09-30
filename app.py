@@ -99,19 +99,14 @@ def get_ydl_configs(output_path):
 
     base_config = {
         'outtmpl': output_path,
-        'merge_output_format': 'mp4',
         'quiet': True,
         'no_warnings': True,
-        'postprocessors': [{
-            'key': 'FFmpegVideoConvertor',
-            'preferedformat': 'mp4',
-        }],
     }
 
-    # Configuración 1: Mejor calidad, video+audio separados, muy flexible
+    # Configuración 1: iOS - formato pre-merged (más rápido)
     config1 = {
         **base_config,
-        'format': 'bv*+ba/b',
+        'format': 'best[ext=mp4]/best',
         'extractor_args': {
             'youtube': {
                 'player_client': ['ios'],
@@ -119,10 +114,10 @@ def get_ydl_configs(output_path):
         },
     }
 
-    # Configuración 2: Lo mejor disponible en un solo archivo
+    # Configuración 2: Android - formato optimizado
     config2 = {
         **base_config,
-        'format': 'b',
+        'format': '18/best[height<=720]/best',  # Formato 18 es 360p mp4, siempre disponible
         'extractor_args': {
             'youtube': {
                 'player_client': ['android'],
@@ -130,10 +125,22 @@ def get_ydl_configs(output_path):
         },
     }
 
-    # Configuración 3: Web client, cualquier cosa
+    # Configuración 3: Mejor video+audio con merge rápido
     config3 = {
         **base_config,
-        'format': 'best/bestvideo+bestaudio/bestvideo',
+        'format': 'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'merge_output_format': 'mp4',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios'],
+            }
+        },
+    }
+
+    # Configuración 4: Web client simple
+    config4 = {
+        **base_config,
+        'format': 'best',
         'extractor_args': {
             'youtube': {
                 'player_client': ['web'],
@@ -141,14 +148,14 @@ def get_ydl_configs(output_path):
         },
     }
 
-    # Configuración 4: Fallback absoluto - acepta lo que sea
-    config4 = {
+    # Configuración 5: Fallback - cualquier cosa
+    config5 = {
         **base_config,
-        'format': 'worst',
+        'format': '18',  # 360p MP4 - casi siempre disponible
     }
 
     # Agregar cookies si existen
-    configs = [config1, config2, config3, config4]
+    configs = [config1, config2, config3, config4, config5]
     if os.path.exists(COOKIES_FILE):
         print(f"🍪 Agregando cookies desde: {COOKIES_FILE}")
         for config in configs:
