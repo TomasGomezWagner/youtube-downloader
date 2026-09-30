@@ -55,14 +55,42 @@ def debug():
 
     if os.path.exists(COOKIES_FILE):
         debug_info['cookies_file_size'] = os.path.getsize(COOKIES_FILE)
-        # Leer primeras líneas para verificar formato
+        # Leer archivo completo para verificar formato
         try:
-            with open(COOKIES_FILE, 'r') as f:
-                first_lines = [f.readline().strip() for _ in range(3)]
-                debug_info['cookies_format_ok'] = any('youtube.com' in line for line in first_lines)
-                debug_info['first_line_preview'] = first_lines[0][:50] + '...' if first_lines else 'empty'
-        except:
-            debug_info['cookies_read_error'] = True
+            with open(COOKIES_FILE, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+
+            # Verificar header Netscape
+            has_netscape = any('Netscape HTTP Cookie File' in line for line in lines[:5])
+
+            # Verificar cookies de YouTube
+            youtube_cookies = [l for l in lines if 'youtube.com' in l and not l.strip().startswith('#')]
+
+            # Cookies importantes de YouTube
+            important_cookies = ['CONSENT', 'VISITOR_INFO1_LIVE', 'PREF', '__Secure']
+            has_important = any(any(cookie in line for cookie in important_cookies) for line in youtube_cookies)
+
+            debug_info['has_netscape_header'] = has_netscape
+            debug_info['youtube_cookie_count'] = len(youtube_cookies)
+            debug_info['has_important_cookies'] = has_important
+            debug_info['cookies_format_ok'] = has_netscape and len(youtube_cookies) > 0
+            debug_info['total_lines'] = len(lines)
+            debug_info['first_line'] = lines[0] if lines else 'empty'
+
+            # Mostrar algunas cookies (sin valores sensibles)
+            if youtube_cookies:
+                cookie_names = []
+                for line in youtube_cookies[:5]:
+                    fields = line.split('\t')
+                    if len(fields) >= 6:
+                        cookie_names.append(fields[5])  # El nombre de la cookie
+                debug_info['sample_cookie_names'] = cookie_names
+
+        except UnicodeDecodeError:
+            debug_info['cookies_read_error'] = 'UnicodeDecodeError - archivo no es UTF-8'
+        except Exception as e:
+            debug_info['cookies_read_error'] = str(e)
 
     return jsonify(debug_info)
 
