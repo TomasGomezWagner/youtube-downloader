@@ -19,17 +19,22 @@ Una aplicación web simple para descargar videos de YouTube con audio y video co
 
 1. Clona o descarga este repositorio
 
-2. Instala las dependencias:
+2. **Instala FFmpeg** (requerido para fusionar video+audio):
+   - **Windows**: Descarga de https://ffmpeg.org/download.html o usa `winget install ffmpeg`
+   - **Mac**: `brew install ffmpeg`
+   - **Linux**: `sudo apt install ffmpeg`
+
+3. Instala las dependencias Python:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Ejecuta la aplicación:
+4. Ejecuta la aplicación:
 ```bash
 python app.py
 ```
 
-4. Abre tu navegador en `http://localhost:5000`
+5. Abre tu navegador en `http://localhost:5000`
 
 ## Despliegue en Render (GRATIS)
 

@@ -41,36 +41,38 @@ def get_ydl_configs(output_path):
         'merge_output_format': 'mp4',
         'quiet': True,
         'no_warnings': True,
+        'postprocessors': [{
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': 'mp4',
+        }],
     }
 
-    # Configuración 1: iOS client (más confiable actualmente)
+    # Configuración 1: Mejor calidad, video+audio separados, muy flexible
     config1 = {
         **base_config,
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'format': 'bv*+ba/b',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android'],
-                'player_skip': ['webpage'],
+                'player_client': ['ios'],
             }
         },
     }
 
-    # Configuración 2: Android client con embed
+    # Configuración 2: Lo mejor disponible en un solo archivo
     config2 = {
         **base_config,
-        'format': 'best[ext=mp4]/best',
+        'format': 'b',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web'],
-                'skip': ['hls', 'dash'],
+                'player_client': ['android'],
             }
         },
     }
 
-    # Configuración 3: Web client básico
+    # Configuración 3: Web client, cualquier cosa
     config3 = {
         **base_config,
-        'format': 'best',
+        'format': 'best/bestvideo+bestaudio/bestvideo',
         'extractor_args': {
             'youtube': {
                 'player_client': ['web'],
@@ -78,8 +80,14 @@ def get_ydl_configs(output_path):
         },
     }
 
+    # Configuración 4: Fallback absoluto - acepta lo que sea
+    config4 = {
+        **base_config,
+        'format': 'worst',
+    }
+
     # Agregar cookies si existen
-    configs = [config1, config2, config3]
+    configs = [config1, config2, config3, config4]
     if os.path.exists(COOKIES_FILE):
         for config in configs:
             config['cookiefile'] = COOKIES_FILE

@@ -11,3 +11,6 @@ env/
 .env
 .DS_Store
 cookies.txt
+test_video.*
+cookies_base64.txt
+youtube.com_cookies.txt

@@ -3,3 +3,4 @@ yt-dlp
 gunicorn==21.2.0
 brotli
 mutagen
+ffmpeg-python
