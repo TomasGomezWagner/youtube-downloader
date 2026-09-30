@@ -113,6 +113,20 @@ youtube_downloader/
 
 ## Solución de Problemas
 
+**"Sign in to confirm you're not a bot"**:
+Este es el error más común. Soluciones en orden:
+
+1. **Actualizar yt-dlp** (prueba esto primero):
+   ```bash
+   pip install --upgrade yt-dlp
+   pip freeze > requirements.txt
+   ```
+
+2. **Usar cookies de YouTube** (si el paso 1 no funciona):
+   - Consulta el archivo `COOKIES_GUIDE.md` para instrucciones detalladas
+   - Necesitarás exportar tus cookies de YouTube usando una extensión del navegador
+   - Guarda el archivo `cookies.txt` en la raíz del proyecto
+
 **El servicio está tardando mucho en responder**:
 - El servidor puede estar "despertando". Espera 1 minuto y vuelve a intentar.
 

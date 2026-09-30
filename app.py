@@ -10,6 +10,9 @@ app = Flask(__name__)
 # Crear directorio temporal para descargas
 DOWNLOAD_FOLDER = tempfile.gettempdir()
 
+# Ruta al archivo de cookies (opcional)
+COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -27,14 +30,32 @@ def download():
         timestamp = int(time.time())
         output_path = os.path.join(DOWNLOAD_FOLDER, f'video_{timestamp}.mp4')
 
-        # Configuración de yt-dlp
+        # Configuración de yt-dlp con bypass de detección de bots
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': output_path,
             'merge_output_format': 'mp4',
             'quiet': True,
             'no_warnings': True,
+            # Configuraciones anti-bot
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate',
+            },
         }
+
+        # Usar cookies si el archivo existe (ayuda con videos que requieren autenticación)
+        if os.path.exists(COOKIES_FILE):
+            ydl_opts['cookiefile'] = COOKIES_FILE
 
         # Descargar video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

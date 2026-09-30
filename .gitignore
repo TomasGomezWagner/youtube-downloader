@@ -10,3 +10,4 @@ env/
 *.mkv
 .env
 .DS_Store
+cookies.txt
